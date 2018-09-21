@@ -1,4 +1,3 @@
-#!/usr/bin/python
 
 ## *******************************************************************************************
 ##  killLongRunningImpalaQueries.py
@@ -8,15 +7,15 @@
 ##  Usage: ./killLongRunningImpalaQueries.py  queryRunningSeconds [KILL]
 ##
 ##    Set queryRunningSeconds to the threshold considered "too long"
-##    for an Impala query to run, so that queries that have been running 
+##    for an Impala query to run, so that queries that have been running
 ##    longer than that will be identifed as queries to be killed
 ##
 ##    The second argument "KILL" is optional
 ##    Without this argument, no queries will actually be killed, instead a list
 ##    of queries that are identified as running too long will just be printed to the console
-##    If the argument "KILL" is provided a cancel command will be issues for each selcted query 
+##    If the argument "KILL" is provided a cancel command will be issues for each selcted query
 ##
-##    CM versions <= 5.4 require Full Administrator role to cancel Impala queries 
+##    CM versions <= 5.4 require Full Administrator role to cancel Impala queries
 ##
 ##    Set the CM URL, Cluster Name, login and password in the settings below
 ##
@@ -34,17 +33,17 @@ from cm_api.api_client import ApiResource
 ## ** Settings ******************************
 
 ## Cloudera Manager Host
-cm_host = "YOUR_CM_HOST"
+cm_host = "cdh-manager.live.bi.hellofresh.io"
 cm_port = "7180"
 
 ## Cloudera Manager login with Full Administrator role
-cm_login = "YOUR_CM_LOGIN"
+cm_login = "admin"
 
 ## Cloudera Manager password
-cm_password = "YOUR_CM_PASSWORD"
+cm_password = "secret"
 
 ## Cluster Name
-cluster_name = "YOUR_CLUSTER_NAME"
+cluster_name = "hellofresh-dwh-live"
 
 ## *****************************************
 
@@ -86,7 +85,7 @@ impala_service = None
 print "\nConnecting to Cloudera Manager at " + cm_host + ":" + cm_port
 api = ApiResource(server_host=cm_host, server_port=cm_port, username=cm_login, password=cm_password)
 
-## Get the Cluster 
+## Get the Cluster
 cluster = api.get_cluster(cluster_name)
 
 ## Get the IMPALA service
@@ -96,7 +95,7 @@ for service in service_list:
     impala_service = service
     print "Located Impala Service: " + service.name
     break
-  
+
 if impala_service is None:
   print "Error: Could not locate Impala Service"
   quit(1)
@@ -119,26 +118,28 @@ longRunningQueryCount = 0
 
 for i in range (0, len(queries)):
   query = queries[i]
-  
+
   if query.queryState != 'FINISHED' and query.queryState != 'EXCEPTION':
-    
+
     longRunningQueryCount = longRunningQueryCount + 1
-    
+
     if longRunningQueryCount == 1:
       print '-- long running queries -------------'
-    
+
     print "queryState : " + query.queryState
-    print "queryId: " + query.queryId 
+    print "queryId: " + query.queryId
     print "user: " + query.user
     print "startTime: " + query.startTime.strftime(fmt)
     query_duration = now - query.startTime
     print "query running time (seconds): " + str(query_duration.seconds + query_duration.days * 86400)
     print "SQL: " + query.statement
+    print "Status: " + query.attributes['query_status']
+    print "estimated_per_node_peak_memory: " + str(int(query.attributes['estimated_per_node_peak_memory']) / 1024 /1024 /1024) + "GB"
 
     if kill:
       print "Attempting to kill query..."
       impala_service.cancel_impala_query(query.queryId)
-      
+
     print '-------------------------------------'
 
 if longRunningQueryCount == 0:
