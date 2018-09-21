@@ -49,25 +49,26 @@ cluster_name = "hellofresh-dwh-live"
 
 fmt = '%Y-%m-%d %H:%M:%S %Z'
 
-def printUsageMessage():
-  print "Usage: killLongRunningImpalaQueries.py <queryRunningSeconds>  [KILL]"
-  print "Example that lists queries that have run more than 10 minutes:"
-  print "./killLongRunningImpalaQueries.py 600"
-  print "Example that kills queries that have run more than 10 minutes:"
-  print "./killLongRunningImpalaQueries.py 600 KILL"
+# def printUsageMessage():
+#   print "Usage: killLongRunningImpalaQueries.py <queryRunningSeconds>  [KILL]"
+#   print "Example that lists queries that have run more than 10 minutes:"
+#   print "./killLongRunningImpalaQueries.py 600"
+#   print "Example that kills queries that have run more than 10 minutes:"
+#   print "./killLongRunningImpalaQueries.py 600 KILL"
 
 ## ** Validate command line args *************
 
-if len(sys.argv) == 1 or len(sys.argv) > 3:
-  printUsageMessage()
-  quit(1)
+# if len(sys.argv) == 1 or len(sys.argv) > 3:
+#   printUsageMessage()
+#   quit(1)
 
-queryRunningSeconds = sys.argv[1]
+# queryRunningSeconds = sys.argv[1]
+filterStr = sys.argv[1]
 
-if not queryRunningSeconds.isdigit():
-  print "Error: the first argument must be a digit (number of seconds)"
-  printUsageMessage()
-  quit(1)
+# if not queryRunningSeconds.isdigit():
+#   print "Error: the first argument must be a digit (number of seconds)"
+#   printUsageMessage()
+#   quit(1)
 
 kill = False
 
@@ -104,12 +105,12 @@ if impala_service is None:
 now = datetime.utcnow()
 start = now - timedelta(days=1)
 
-print "Looking for Impala queries running more than " + str(queryRunningSeconds) + " seconds"
+# print "Looking for Impala queries running more than " + str(queryRunningSeconds) + " seconds"
 
 if kill:
   print "Queries will be killed"
 
-filterStr = 'queryDuration > ' + queryRunningSeconds + 's'
+# filterStr = 'queryDuration > ' + queryRunningSeconds + 's'
 
 impala_query_response = impala_service.get_impala_queries(start_time=start, end_time=now, filter_str=filterStr, limit=1000)
 queries = impala_query_response.queries
@@ -134,7 +135,8 @@ for i in range (0, len(queries)):
     print "query running time (seconds): " + str(query_duration.seconds + query_duration.days * 86400)
     print "SQL: " + query.statement
     print "Status: " + query.attributes['query_status']
-    print "estimated_per_node_peak_memory: " + str(int(query.attributes['estimated_per_node_peak_memory']) / 1024 /1024 /1024) + "GB"
+    if 'memory_per_node_peak' in query.attributes.keys():
+        print "memory_per_node_peak: " + str(float(query.attributes['memory_per_node_peak']) / 1024 /1024 /1024) + "GB"
 
     if kill:
       print "Attempting to kill query..."
